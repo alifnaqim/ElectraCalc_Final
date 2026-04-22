@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/((?!api/|static/|.*\\..*$).*)",
+      "destination": "/login.html"
+    },
+    {
+      "source": "/",
+      "destination": "/login.html"
+    }
+  ]
+}
