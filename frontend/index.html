@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+   <script src="auth-guard.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ElectraCalc — Electrical Load & Wire Sizing Tool</title>
+
+  <!-- Fonts: Syne (display) + DM Sans (body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- jsPDF for export -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ─── NOISE OVERLAY ─────────────────────────────────────── -->
+  <div class="noise-overlay" aria-hidden="true"></div>
+
+  <!-- ─── HEADER ────────────────────────────────────────────── -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="logo-group">
+        <div class="logo-icon">
+          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18 2L4 18H14L12 30L28 12H18L18 2Z" fill="currentColor"/>
+          </svg>
+        </div>
+        <div class="logo-text">
+          <span class="logo-name">ElectraCalc</span>
+          <span class="logo-tagline">PUIL-Compliant Wire Sizing</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div class="voltage-badge" id="voltageDisplay" title="Tegangan sistem">
+          <span class="badge-dot"></span>
+          <span id="voltageLabel">220V AC</span>
+        </div>
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark/light mode">
+          <span class="theme-icon theme-icon--dark">☀️</span>
+          <span class="theme-icon theme-icon--light">🌙</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ─── HERO BAND ─────────────────────────────────────────── -->
+  <section class="hero-band">
+    <div class="hero-inner">
+      <div class="hero-label">SMART ELECTRICAL CALCULATOR</div>
+      <h1 class="hero-title">
+        Hitung Beban &amp; Ukuran<br/>
+        <em>Kabel Listrik</em> Secara Cerdas
+      </h1>
+      <p class="hero-sub">Berbasis standar <strong>PUIL 2011</strong> · Safety factor 125% · Voltage drop analysis · Rekomendasi MCB</p>
+    </div>
+    <!-- decorative grid lines -->
+    <div class="hero-grid" aria-hidden="true">
+      <div></div><div></div><div></div><div></div><div></div><div></div>
+    </div>
+  </section>
+
+  <!-- ─── MAIN CONTENT ──────────────────────────────────────── -->
+  <main class="main-layout">
+
+    <!-- ══ PANEL KIRI: INPUT ══════════════════════════════════ -->
+    <section class="panel panel--input" aria-label="Input Beban Listrik">
+
+      <!-- System Parameters -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">
+            <span class="card-icon">⚙️</span>
+            Parameter Sistem
+          </h2>
+        </div>
+        <div class="card-body">
+          <div class="field-grid">
+            <div class="field-group">
+              <label class="field-label" for="systemVoltage">Tegangan (V)</label>
+              <div class="input-wrap">
+                <input type="number" id="systemVoltage" class="field-input" value="220" min="110" max="415" step="1" />
+                <span class="input-unit">V</span>
+              </div>
+            </div>
+            <div class="field-group">
+              <label class="field-label" for="cableLength">Panjang Kabel (m)</label>
+              <div class="input-wrap">
+                <input type="number" id="cableLength" class="field-input" value="10" min="1" max="500" step="0.5" />
+                <span class="input-unit">m</span>
+              </div>
+            </div>
+            <div class="field-group">
+              <label class="field-label" for="cableMaterial">Material Kabel</label>
+              <div class="input-wrap input-wrap--select">
+                <select id="cableMaterial" class="field-input field-select">
+                  <option value="copper">Tembaga (Cu)</option>
+                  <option value="aluminum">Aluminium (Al)</option>
+                </select>
+              </div>
+            </div>
+            <div class="field-group">
+              <label class="field-label" for="phaseSystem">Sistem Fasa</label>
+              <div class="input-wrap input-wrap--select">
+                <select id="phaseSystem" class="field-input field-select">
+                  <option value="single">1 Fasa</option>
+                  <option value="three">3 Fasa</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Appliance List -->
+      <div class="card card--appliances">
+        <div class="card-header">
+          <h2 class="card-title">
+            <span class="card-icon">🔌</span>
+            Daftar Peralatan Listrik
+          </h2>
+          <button class="btn btn--ghost btn--sm" id="addRowBtn" aria-label="Tambah peralatan">
+            <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16"><path d="M10 4V16M4 10H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Tambah
+          </button>
+        </div>
+        <div class="card-body">
+          <!-- Table header -->
+          <div class="appliance-header">
+            <span>Nama Alat</span>
+            <span>Daya (W)</span>
+            <span>Qty</span>
+            <span>Jam/hari</span>
+            <span></span>
+          </div>
+          <!-- Rows injected by JS -->
+          <div id="applianceList" class="appliance-list" role="list"></div>
+
+          <!-- Presets -->
+          <div class="preset-section">
+            <p class="preset-label">Quick Add:</p>
+            <div class="preset-chips" id="presetChips">
+              <button class="preset-chip" data-name="Lampu LED" data-watt="10">💡 Lampu LED</button>
+              <button class="preset-chip" data-name="AC 1PK" data-watt="900">❄️ AC 1PK</button>
+              <button class="preset-chip" data-name="Kulkas" data-watt="150">🧊 Kulkas</button>
+              <button class="preset-chip" data-name="TV 43"" data-watt="120">📺 TV 43"</button>
+              <button class="preset-chip" data-name="Mesin Cuci" data-watt="500">🌀 Mesin Cuci</button>
+              <button class="preset-chip" data-name="Pompa Air" data-watt="375">💧 Pompa Air</button>
+              <button class="preset-chip" data-name="Setrika" data-watt="350">♨️ Setrika</button>
+              <button class="preset-chip" data-name="Komputer" data-watt="250">🖥️ Komputer</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Calculate CTA -->
+      <button class="btn btn--primary btn--full" id="calculateBtn">
+        <span class="btn-content">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20">
+            <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" fill="currentColor"/>
+          </svg>
+          Hitung Sekarang
+        </span>
+        <span class="btn-loader" aria-hidden="true"></span>
+      </button>
+
+    </section>
+
+    <!-- ══ PANEL KANAN: RESULT ═════════════════════════════════ -->
+    <section class="panel panel--result" aria-label="Hasil Analisis" id="resultPanel">
+
+      <!-- SKELETON (shown while loading) -->
+      <div class="skeleton-group" id="skeletonGroup" aria-hidden="true">
+        <div class="skeleton-card">
+          <div class="skeleton-line skeleton-line--short"></div>
+          <div class="skeleton-line skeleton-line--long"></div>
+          <div class="skeleton-line"></div>
+        </div>
+        <div class="skeleton-card">
+          <div class="skeleton-line skeleton-line--short"></div>
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line skeleton-line--long"></div>
+        </div>
+        <div class="skeleton-card skeleton-chart"></div>
+      </div>
+
+      <!-- EMPTY STATE -->
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">⚡</div>
+        <h3>Siap Menghitung</h3>
+        <p>Tambahkan peralatan listrik dan klik <strong>Hitung Sekarang</strong> untuk melihat analisis lengkap.</p>
+      </div>
+
+      <!-- RESULTS (hidden until calculated) -->
+      <div class="results-container" id="resultsContainer" hidden>
+
+        <!-- Safety Status Banner -->
+        <div class="safety-banner" id="safetyBanner" role="alert">
+          <div class="safety-icon" id="safetyIcon">✅</div>
+          <div class="safety-text">
+            <strong id="safetyTitle">Status Keamanan</strong>
+            <span id="safetyDesc">—</span>
+          </div>
+          <div class="safety-badge" id="safetyBadge">—</div>
+        </div>
+
+        <!-- Metrics Grid -->
+        <div class="metrics-grid">
+          <div class="metric-card" data-metric="power">
+            <div class="metric-label">Total Beban</div>
+            <div class="metric-value" id="metricPower">—</div>
+            <div class="metric-unit">Watt</div>
+          </div>
+          <div class="metric-card" data-metric="current">
+            <div class="metric-label">Arus (I)</div>
+            <div class="metric-value" id="metricCurrent">—</div>
+            <div class="metric-unit">Ampere</div>
+          </div>
+          <div class="metric-card" data-metric="current-safe">
+            <div class="metric-label">Arus × 125%</div>
+            <div class="metric-value" id="metricCurrentSafe">—</div>
+            <div class="metric-unit">A (safety)</div>
+          </div>
+          <div class="metric-card" data-metric="vdrop">
+            <div class="metric-label">Voltage Drop</div>
+            <div class="metric-value" id="metricVdrop">—</div>
+            <div class="metric-unit">% dari 220V</div>
+          </div>
+        </div>
+
+        <!-- Recommendations -->
+        <div class="rec-grid">
+          <div class="rec-card rec-card--wire">
+            <div class="rec-icon">🔶</div>
+            <div class="rec-content">
+              <div class="rec-label">Ukuran Kabel (PUIL)</div>
+              <div class="rec-value" id="recWire">—</div>
+              <div class="rec-note" id="recWireNote">—</div>
+            </div>
+          </div>
+          <div class="rec-card rec-card--mcb">
+            <div class="rec-icon">🔲</div>
+            <div class="rec-content">
+              <div class="rec-label">Rating MCB</div>
+              <div class="rec-value" id="recMCB">—</div>
+              <div class="rec-note" id="recMCBNote">—</div>
+            </div>
+          </div>
+          <div class="rec-card rec-card--cost">
+            <div class="rec-icon">💰</div>
+            <div class="rec-content">
+              <div class="rec-label">Est. Biaya Kabel</div>
+              <div class="rec-value" id="recCost">—</div>
+              <div class="rec-note" id="recCostNote">—</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Voltage Drop Detail -->
+        <div class="card card--vdrop">
+          <div class="card-header">
+            <h3 class="card-title"><span class="card-icon">📉</span>Analisis Voltage Drop</h3>
+          </div>
+          <div class="card-body">
+            <div class="vdrop-bar-wrap">
+              <div class="vdrop-bar-track">
+                <div class="vdrop-bar-fill" id="vdropBarFill"></div>
+                <div class="vdrop-limit vdrop-limit--5">5%</div>
+              </div>
+              <div class="vdrop-labels">
+                <span>0%</span><span>Batas PUIL (5%)</span><span>10%</span>
+              </div>
+            </div>
+            <div class="vdrop-detail" id="vdropDetail">—</div>
+          </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="card card--chart">
+          <div class="card-header">
+            <h3 class="card-title"><span class="card-icon">📊</span>Distribusi Beban per Peralatan</h3>
+            <div class="chart-tabs">
+              <button class="chart-tab active" data-chart="doughnut">Donut</button>
+              <button class="chart-tab" data-chart="bar">Bar</button>
+            </div>
+          </div>
+          <div class="card-body card-body--chart">
+            <canvas id="loadChart" width="400" height="280"></canvas>
+          </div>
+        </div>
+
+        <!-- Appliance Table Summary -->
+        <div class="card card--table">
+          <div class="card-header">
+            <h3 class="card-title"><span class="card-icon">📋</span>Ringkasan Peralatan</h3>
+          </div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table class="result-table" id="resultTable">
+                <thead>
+                  <tr>
+                    <th>Peralatan</th>
+                    <th>Daya</th>
+                    <th>Qty</th>
+                    <th>Total</th>
+                    <th>kWh/hari</th>
+                    <th>%</th>
+                  </tr>
+                </thead>
+                <tbody id="resultTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-row">
+          <button class="btn btn--outline" id="exportPdfBtn">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16"><path d="M12 16L7 11M12 16L17 11M12 16V4M6 20H18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Export PDF
+          </button>
+          <button class="btn btn--ghost" id="resetBtn">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16"><path d="M4 4V9H9M20 20V15H15M20.49 9A9 9 0 0 0 5.64 5.64L4 9M4 15L5.64 18.36A9 9 0 0 0 18.36 18.36" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Reset
+          </button>
+        </div>
+
+      </div><!-- /results-container -->
+
+    </section>
+
+  </main>
+
+  <!-- ─── FOOTER ────────────────────────────────────────────── -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span>ElectraCalc</span>
+        <span class="footer-sep">·</span>
+        <span>Berdasarkan PUIL 2011 SNI 04-0225-2011</span>
+      </div>
+      <div class="footer-meta">Tugas Akhir Teknik Elektro · Harga referensi: Eterna / Supreme 2024</div>
+    </div>
+  </footer>
+
+  <!-- ─── TOAST ─────────────────────────────────────────────── -->
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>

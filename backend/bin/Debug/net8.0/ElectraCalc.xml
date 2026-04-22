@@ -1,0 +1,70 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>ElectraCalc</name>
+    </assembly>
+    <members>
+        <member name="T:ElectraCalc.Controllers.ApplianceInput">
+            <summary>Satu item peralatan listrik dari form input.</summary>
+        </member>
+        <member name="M:ElectraCalc.Controllers.ApplianceInput.#ctor(System.String,System.Double,System.Int32,System.Double)">
+            <summary>Satu item peralatan listrik dari form input.</summary>
+        </member>
+        <member name="T:ElectraCalc.Controllers.CalculatorRequest">
+            <summary>Payload utama yang dikirim dari frontend (JSON POST).</summary>
+        </member>
+        <member name="M:ElectraCalc.Controllers.CalculatorRequest.#ctor(System.Collections.Generic.IList{ElectraCalc.Controllers.ApplianceInput},System.Double,System.Double,System.String,System.String)">
+            <summary>Payload utama yang dikirim dari frontend (JSON POST).</summary>
+        </member>
+        <member name="T:ElectraCalc.Controllers.ApplianceResult">
+            <summary>Hasil per peralatan yang dikembalikan ke frontend.</summary>
+        </member>
+        <member name="M:ElectraCalc.Controllers.ApplianceResult.#ctor(System.String,System.Double,System.Int32,System.Double,System.Double,System.Double,System.Double)">
+            <summary>Hasil per peralatan yang dikembalikan ke frontend.</summary>
+        </member>
+        <member name="T:ElectraCalc.Controllers.CalculatorResponse">
+            <summary>Respons lengkap dari API perhitungan.</summary>
+        </member>
+        <member name="M:ElectraCalc.Controllers.CalculatorResponse.#ctor(System.Double,System.Double,System.Double,System.Double,System.Double,System.Double,System.Double,System.Int32,System.Int64,System.Int64,System.String,System.String,System.Double,System.Double,System.String,System.String,System.Collections.Generic.IList{ElectraCalc.Controllers.ApplianceResult})">
+            <summary>Respons lengkap dari API perhitungan.</summary>
+        </member>
+        <member name="T:ElectraCalc.Controllers.CalculatorController">
+            <summary>
+            API Controller untuk kalkulasi beban listrik dan ukuran kabel.
+            Semua logika perhitungan dilakukan di service layer (ICalculatorService).
+            </summary>
+        </member>
+        <member name="M:ElectraCalc.Controllers.CalculatorController.Calculate(ElectraCalc.Controllers.CalculatorRequest)">
+            <summary>
+            Hitung beban listrik, arus, ukuran kabel (PUIL), rating MCB,
+            voltage drop, dan estimasi biaya kabel.
+            </summary>
+            <param name="req">Data peralatan dan parameter sistem.</param>
+            <returns>Hasil analisis lengkap.</returns>
+            <response code="200">Kalkulasi berhasil.</response>
+            <response code="400">Input tidak valid.</response>
+        </member>
+        <member name="M:ElectraCalc.Controllers.CalculatorController.GetWireStandards(ElectraCalc.Controllers.AppDbContext)">
+            <summary>Kembalikan daftar standar kabel dari database.</summary>
+        </member>
+        <member name="M:ElectraCalc.Controllers.CalculatorController.Health">
+            <summary>Health check endpoint.</summary>
+        </member>
+        <member name="T:ElectraCalc.Controllers.CalculatorService">
+            <summary>
+            Implementasi service kalkulasi beban listrik.
+            Rumus utama: I = P / V (single-phase), I = P / (√3 × V × PF) (three-phase).
+            Safety factor 125% sesuai PUIL 2011 Pasal 7.3.
+            </summary>
+        </member>
+        <member name="T:ElectraCalc.Controllers.WireStandard">
+            <summary>
+            Standar kabel PUIL — disimpan di database agar harga
+            bisa diupdate tanpa recompile.
+            </summary>
+        </member>
+        <member name="T:ElectraCalc.Controllers.AppDbContext">
+            <summary>Entity Framework Core DbContext.</summary>
+        </member>
+    </members>
+</doc>

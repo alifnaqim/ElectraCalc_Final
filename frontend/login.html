@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ElectraCalc — Login</title>
+
+  <!-- Fonts: Syne + DM Sans (sama dengan main app) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
+
+  <!--
+    ════════════════════════════════════════════════════════════
+    GOOGLE IDENTITY SERVICES (GSI) — library resmi Google
+    Dokumentasi: https://developers.google.com/identity/gsi/web
+    ════════════════════════════════════════════════════════════
+  -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <style>
+    /* ════════════════════════════════════════════════════════
+       ELECTRACALC LOGIN — Industrial Minimal Redesign
+       Aesthetic: Precision instrument panel · Muted dark steel
+       · single amber accent · zero decoration noise
+    ════════════════════════════════════════════════════════ */
+
+    :root {
+      --bg:          #09090b;        /* near-black zinc */
+      --panel:       #111114;        /* card surface */
+      --panel-hi:    #18181c;        /* subtle lift */
+      --rule:        rgba(255,255,255,0.06);
+      --rule-hi:     rgba(255,255,255,0.11);
+      --amber:       #e8a920;        /* single accent — instrument amber */
+      --amber-dim:   rgba(232,169,32,0.08);
+      --amber-glow:  rgba(232,169,32,0.18);
+      --text:        #d4d4d8;
+      --text-2:      #71717a;
+      --text-3:      #3f3f46;
+      --green:       #16a34a;
+      --green-dim:   rgba(22,163,74,0.10);
+      --red-dim:     rgba(220,38,38,0.10);
+      --red-border:  rgba(220,38,38,0.30);
+      --font-d: 'Syne', sans-serif;
+      --font-b: 'DM Sans', sans-serif;
+      --ease:   cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+
+    body {
+      font-family: var(--font-b);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* ── BACKGROUND — static, refined ──────────────────────── */
+    .bg-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Fine grid — barely visible, engineering paper feel */
+    .bg-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+      background-size: 64px 64px;
+    }
+
+    /* Corner-anchored amber gradient — not centred */
+    .bg-orb {
+      position: absolute;
+      width: 800px;
+      height: 800px;
+      right: -200px;
+      bottom: -300px;
+      background: radial-gradient(circle, rgba(232,169,32,0.055) 0%, transparent 60%);
+      /* NO animation — static, intentional */
+    }
+
+    /* Noise */
+    .bg-noise {
+      position: absolute;
+      inset: 0;
+      opacity: 0.025;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    /* Floating nodes — kept for JS compatibility, made invisible */
+    .bg-nodes { position: absolute; inset: 0; }
+    .node { display: none; }   /* disabled — too decorative for this aesthetic */
+
+    /* ── LAYOUT: two-column split ───────────────────────────── */
+    .login-shell {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      width: min(860px, 96vw);
+      min-height: min(520px, 90vh);
+      animation: shellIn 0.55s var(--ease) both;
+    }
+    @keyframes shellIn {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Left panel — brand identity */
+    .login-left {
+      flex: 1;
+      background: var(--panel-hi);
+      border: 1px solid var(--rule-hi);
+      border-right: none;
+      border-radius: 14px 0 0 14px;
+      padding: 3rem 2.5rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Amber vertical stripe on far left */
+    .login-left::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: linear-gradient(180deg, transparent 0%, var(--amber) 35%, var(--amber) 65%, transparent 100%);
+      opacity: 0.7;
+    }
+
+    /* Right panel — login form */
+    .login-card {
+      width: 340px;
+      flex-shrink: 0;
+      background: var(--panel);
+      border: 1px solid var(--rule-hi);
+      border-radius: 0 14px 14px 0;
+      padding: 2.75rem 2.25rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+    }
+
+    /* Hairline top rule on card */
+    .card-accent-bar {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, var(--amber) 50%, transparent 100%);
+      opacity: 0.5;
+    }
+
+    /* ── LEFT: Brand area ───────────────────────────────────── */
+    .brand-top { }
+
+    .logo-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      margin-bottom: 2.5rem;
+    }
+    .logo-icon-wrap {
+      width: 40px; height: 40px;
+      border: 1px solid var(--amber);
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: var(--amber);
+      background: var(--amber-dim);
+      flex-shrink: 0;
+    }
+    .logo-icon-wrap svg { width: 18px; height: 18px; }
+    .logo-name {
+      font-family: var(--font-d);
+      font-weight: 700;
+      font-size: 1.25rem;
+      letter-spacing: -0.03em;
+      color: var(--text);
+    }
+
+    .brand-headline {
+      font-family: var(--font-d);
+      font-size: 2rem;
+      font-weight: 800;
+      line-height: 1.12;
+      letter-spacing: -0.04em;
+      color: var(--text);
+      margin-bottom: 1rem;
+    }
+    .brand-headline em {
+      font-style: normal;
+      color: var(--amber);
+    }
+
+    .brand-desc {
+      font-size: 0.83rem;
+      line-height: 1.7;
+      color: var(--text-2);
+      max-width: 260px;
+    }
+
+    /* Spec list */
+    .spec-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      border-top: 1px solid var(--rule);
+    }
+    .spec-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.65rem 0;
+      border-bottom: 1px solid var(--rule);
+    }
+    .spec-key {
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-3);
+    }
+    .spec-val {
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--text-2);
+    }
+    .spec-val.hi { color: var(--amber); }
+
+    .brand-version {
+      font-size: 0.68rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-3);
+    }
+
+    /* ── RIGHT: Form area ───────────────────────────────────── */
+    .form-eyebrow {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 0.5rem;
+    }
+    .form-title {
+      font-family: var(--font-d);
+      font-size: 1.3rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      margin-bottom: 0.35rem;
+      line-height: 1.2;
+    }
+    .form-sub {
+      font-size: 0.8rem;
+      color: var(--text-2);
+      margin-bottom: 2rem;
+      line-height: 1.6;
+    }
+
+    /* Error box */
+    .error-box {
+      display: none;
+      align-items: flex-start;
+      gap: 0.5rem;
+      padding: 0.65rem 0.85rem;
+      background: var(--red-dim);
+      border: 1px solid var(--red-border);
+      border-radius: 6px;
+      font-size: 0.78rem;
+      color: #f87171;
+      margin-bottom: 1.25rem;
+      line-height: 1.5;
+    }
+    .error-box.visible { display: flex; }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%,60% { transform: translateX(-5px); }
+      40%,80% { transform: translateX(5px); }
+    }
+
+    /* Divider */
+    .divider { display: none; } /* removed — layout handles spacing */
+
+    /* Google button */
+    .google-btn-wrap { margin-bottom: 0; }
+
+    .google-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.7rem;
+      padding: 0.8rem 1rem;
+      background: var(--panel-hi);
+      border: 1px solid var(--rule-hi);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--font-b);
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: border-color 0.18s var(--ease), background 0.18s var(--ease), transform 0.15s var(--ease);
+      position: relative;
+      overflow: hidden;
+      letter-spacing: 0.01em;
+    }
+    .google-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.03);
+      opacity: 0;
+      transition: opacity 0.18s;
+    }
+    .google-btn:hover {
+      border-color: rgba(255,255,255,0.18);
+      background: #1c1c20;
+      transform: translateY(-1px);
+    }
+    .google-btn:hover::before { opacity: 1; }
+    .google-btn:active { transform: scale(0.987); }
+
+    .g-logo { flex-shrink: 0; width: 18px; height: 18px; }
+
+    /* Features — replaced with a minimal separator + note */
+    .features { display: none; }  /* hidden — moved context to left panel */
+
+    /* Terms note */
+    .login-footer {
+      margin-top: 1.5rem;
+      font-size: 0.69rem;
+      color: var(--text-3);
+      line-height: 1.65;
+      text-align: left;
+    }
+
+    /* ── LOADING OVERLAY ────────────────────────────────────── */
+    .loading-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      background: rgba(9,9,11,0.88);
+      backdrop-filter: blur(10px);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+    }
+    .loading-overlay.active { display: flex; }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 2px solid rgba(232,169,32,0.15);
+      border-top-color: var(--amber);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-2);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    /* ── USER STATE (post-login) ────────────────────────────── */
+    .user-state {
+      display: none;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+      text-align: left;
+    }
+    .user-state.visible { display: flex; }
+
+    .user-avatar-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .user-avatar {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      border: 1px solid var(--amber);
+      object-fit: cover;
+    }
+    .user-name {
+      font-family: var(--font-d);
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .user-email {
+      font-size: 0.75rem;
+      color: var(--text-2);
+      margin-top: 0.1rem;
+    }
+    .success-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.25rem 0.7rem;
+      background: var(--green-dim);
+      border: 1px solid rgba(22,163,74,0.35);
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #4ade80;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .countdown {
+      font-size: 0.76rem;
+      color: var(--text-2);
+    }
+    .countdown span { color: var(--amber); font-weight: 600; }
+
+    .redirect-btn {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: var(--amber);
+      border: none;
+      border-radius: 8px;
+      font-family: var(--font-b);
+      font-size: 0.875rem;
+      font-weight: 700;
+      color: #09090b;
+      cursor: pointer;
+      letter-spacing: 0.01em;
+      transition: filter 0.15s, transform 0.15s var(--ease);
+    }
+    .redirect-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
+    /* ── RESPONSIVE: stack on mobile ───────────────────────── */
+    @media (max-width: 640px) {
+      .login-shell { flex-direction: column; width: min(380px, 94vw); }
+      .login-left  { display: none; }
+      .login-card  { width: 100%; border-radius: 14px; }
+      .card-accent-bar { border-radius: 14px 14px 0 0; }
+    }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--panel-hi); border-radius: 99px; }
+  </style>
+</head>
+<body>
+
+  <!-- Background layer — kept for spawnNodes() JS compatibility -->
+  <div class="bg-layer">
+    <div class="bg-grid"></div>
+    <div class="bg-orb"></div>
+    <div class="bg-noise"></div>
+    <div class="bg-nodes" id="bgNodes"></div>
+  </div>
+
+  <!-- Loading overlay — ID preserved for showLoading() / hideLoading() -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+    <div class="loading-text">Memverifikasi akun&hellip;</div>
+  </div>
+
+  <!-- ══ TWO-COLUMN SHELL ══════════════════════════════════════ -->
+  <div class="login-shell">
+
+    <!-- ── LEFT — Brand panel ──────────────────────────────── -->
+    <div class="login-left">
+
+      <!-- Logo -->
+      <div class="brand-top">
+        <div class="logo-wrap">
+          <div class="logo-icon-wrap">
+            <svg viewBox="0 0 32 32" fill="none">
+              <path d="M18 2L4 18H14L12 30L28 12H18L18 2Z" fill="currentColor"/>
+            </svg>
+          </div>
+          <span class="logo-name">ElectraCalc</span>
+        </div>
+
+        <div class="brand-headline">
+          Electrical<br/>
+          Load &amp;<br/>
+          <em>Wire Sizing</em>
+        </div>
+        <p class="brand-desc">
+          Alat kalkulasi instalasi listrik berbasis standar PUIL 2011 — dirancang untuk insinyur dan teknisi.
+        </p>
+      </div>
+
+      <!-- Spec table -->
+      <div class="spec-list">
+        <div class="spec-item">
+          <span class="spec-key">Standar</span>
+          <span class="spec-val hi">PUIL 2011 · SNI 04-0225</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-key">Safety factor</span>
+          <span class="spec-val">125% (Pasal 7.3)</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-key">Analisis</span>
+          <span class="spec-val">Voltage drop · MCB · Biaya</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-key">Export</span>
+          <span class="spec-val">PDF report</span>
+        </div>
+      </div>
+
+      <div class="brand-version">ElectraCalc · v1.0 · Teknik Elektro</div>
+    </div>
+
+    <!-- ── RIGHT — Login card ───────────────────────────────── -->
+    <div class="login-card">
+      <div class="card-accent-bar"></div>
+
+      <!-- Error box — ID preserved for showError() / hideError() -->
+      <div class="error-box" id="errorBox">
+        <span>⚠</span>
+        <span id="errorMsg">Terjadi kesalahan saat login.</span>
+      </div>
+
+      <!-- ── LOGIN STATE — ID preserved for showUserState() ── -->
+      <div id="loginState">
+        <div class="form-eyebrow">Akses Aplikasi</div>
+        <div class="form-title">Masuk ke<br/>ElectraCalc</div>
+        <p class="form-sub">Gunakan akun Google kamu untuk melanjutkan.</p>
+
+        <!-- Divider — hidden via CSS, kept for DOM compatibility -->
+        <div class="divider"><span>masuk untuk melanjutkan</span></div>
+
+        <!--
+          TOMBOL LOGIN — onclick, id, class semua TIDAK DIUBAH
+          Terhubung ke handleGoogleLogin() di script
+        -->
+        <div class="google-btn-wrap">
+          <button class="google-btn" id="googleLoginBtn" onclick="handleGoogleLogin()">
+            <svg class="g-logo" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+            Masuk dengan Google
+          </button>
+        </div>
+
+        <!-- Features — hidden via CSS, kept for DOM compatibility -->
+        <div class="features">
+          <div class="feature-item"><div class="feature-dot"></div>Kalkulasi beban listrik berbasis PUIL 2011</div>
+          <div class="feature-item"><div class="feature-dot"></div>Rekomendasi ukuran kabel &amp; MCB otomatis</div>
+          <div class="feature-item"><div class="feature-dot"></div>Analisis voltage drop + export laporan PDF</div>
+          <div class="feature-item"><div class="feature-dot"></div>Login aman — data tidak disimpan di server</div>
+        </div>
+      </div>
+      <!-- /loginState -->
+
+      <!-- ── USER STATE — semua ID preserved untuk JS callbacks ── -->
+      <div class="user-state" id="userState">
+        <div class="user-avatar-row">
+          <img class="user-avatar" id="userAvatar" src="" alt="Foto profil" />
+          <div>
+            <div class="user-name" id="userName">—</div>
+            <div class="user-email" id="userEmail">—</div>
+          </div>
+        </div>
+        <div class="success-badge">&#10003; Terautentikasi</div>
+        <div class="countdown">
+          Mengalihkan dalam <span id="countdownNum">3</span> detik&hellip;
+        </div>
+        <button class="redirect-btn" onclick="goToApp()">
+          Buka ElectraCalc →
+        </button>
+      </div>
+
+      <!-- Footer -->
+      <div class="login-footer">
+        Dengan masuk, kamu menyetujui penggunaan Google OAuth 2.0. Data akun tidak disimpan di server.
+      </div>
+    </div>
+    <!-- /login-card -->
+
+  </div>
+  <!-- /login-shell -->
+
+  <!--
+  ════════════════════════════════════════════════════════════════
+  JAVASCRIPT — Google Identity Services (GSI) Integration
+  ════════════════════════════════════════════════════════════════
+
+  CARA KERJA:
+  1. User klik tombol "Masuk dengan Google"
+  2. google.accounts.id.initialize() dipanggil dengan CLIENT_ID
+  3. Google tampilkan popup login
+  4. Setelah berhasil, callback handleCredentialResponse() dipanggil
+  5. JWT token di-decode untuk ambil data user (nama, email, foto)
+  6. Data user disimpan ke sessionStorage
+  7. User diarahkan ke index.html
+
+  CATATAN PENTING:
+  Ganti YOUR_GOOGLE_CLIENT_ID dengan Client ID dari Google Cloud Console!
+  (Lihat panduan di bawah halaman ini)
+  ════════════════════════════════════════════════════════════════
+  -->
+  <script>
+    // ╔══════════════════════════════════════════════════════╗
+    // ║  ⚠️  GANTI INI DENGAN CLIENT ID KAMU!               ║
+    // ║  Format: xxxxx.apps.googleusercontent.com           ║
+    // ╚══════════════════════════════════════════════════════╝
+   const GOOGLE_CLIENT_ID = '616362148704-3bjmvmdsj2c506j6rirjkmpifsmkmht4.apps.googleusercontent.com';
+
+    // URL halaman utama aplikasi
+    const APP_URL = 'index.html';
+
+    // ── Cek jika sudah login sebelumnya ──────────────────────
+    window.addEventListener('load', () => {
+      const savedUser = sessionStorage.getItem('electra_user');
+      if (savedUser) {
+        // Sudah login → langsung ke app
+        window.location.href = APP_URL;
+        return;
+      }
+      initGoogleGSI();
+      spawnNodes();
+    });
+
+    // ── Inisialisasi Google Identity Services ───────────────
+    function initGoogleGSI() {
+      if (typeof google === 'undefined') {
+        // Library belum load (mode offline / file://)
+        console.warn('[ElectraCalc] Google GSI library belum tersedia. Pastikan buka via Live Server.');
+        return;
+      }
+
+      google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback:  handleCredentialResponse,
+        auto_select: false,
+        cancel_on_tap_outside: true,
+      });
+    }
+
+    // ── Klik tombol → buka popup Google ─────────────────────
+    function handleGoogleLogin() {
+      hideError();
+
+      // Validasi: pastikan CLIENT_ID sudah diganti
+      if (GOOGLE_CLIENT_ID.startsWith('YOUR_GOOGLE')) {
+        showError('Client ID belum diisi! Buka login.html dan ganti YOUR_GOOGLE_CLIENT_ID dengan Client ID dari Google Cloud Console.');
+        return;
+      }
+
+      if (typeof google === 'undefined') {
+        showError('Tidak bisa terhubung ke Google. Pastikan kamu membuka file ini via VS Code Live Server (bukan file://), dan periksa koneksi internet.');
+        return;
+      }
+
+      // Tampilkan Google One Tap / popup
+      google.accounts.id.prompt((notification) => {
+        if (notification.isNotDisplayed()) {
+          // One Tap diblokir (cookie, incognito, dll) → fallback ke popup
+          google.accounts.oauth2.initTokenClient({
+            client_id: GOOGLE_CLIENT_ID,
+            scope: 'openid email profile',
+            callback: handleTokenResponse,
+          }).requestAccessToken();
+        }
+        if (notification.isSkippedMoment() || notification.isDismissedMoment()) {
+          // User tutup popup — tidak ada error
+        }
+      });
+    }
+
+    // ── Callback setelah Google memberikan JWT credential ───
+    function handleCredentialResponse(response) {
+      showLoading();
+
+      try {
+        // Decode JWT payload (base64) — tidak perlu verifikasi di frontend
+        // Verifikasi asli dilakukan di backend production
+        const payload = decodeJWT(response.credential);
+
+        if (!payload || !payload.email) {
+          throw new Error('Data akun Google tidak valid.');
+        }
+
+        // Simpan ke sessionStorage (hilang saat tab ditutup)
+        const userData = {
+          name:    payload.name    || 'Pengguna',
+          email:   payload.email,
+          picture: payload.picture || '',
+          sub:     payload.sub,       // Google User ID
+          loginAt: Date.now(),
+        };
+        sessionStorage.setItem('electra_user', JSON.stringify(userData));
+
+        hideLoading();
+        showUserState(userData);
+
+        // Auto redirect countdown 3 detik
+        startCountdown(3);
+
+      } catch (err) {
+        hideLoading();
+        showError('Gagal memproses data akun: ' + err.message);
+        console.error('[ElectraCalc] Auth error:', err);
+      }
+    }
+
+    // Fallback untuk token response (OAuth2 popup)
+    function handleTokenResponse(tokenResponse) {
+      if (tokenResponse.error) {
+        showError('Login dibatalkan atau gagal: ' + tokenResponse.error);
+        return;
+      }
+      // Fetch user info menggunakan access token
+      showLoading();
+      fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+      })
+      .then(r => r.json())
+      .then(profile => {
+        const userData = {
+          name:    profile.name    || 'Pengguna',
+          email:   profile.email,
+          picture: profile.picture || '',
+          sub:     profile.sub,
+          loginAt: Date.now(),
+        };
+        sessionStorage.setItem('electra_user', JSON.stringify(userData));
+        hideLoading();
+        showUserState(userData);
+        startCountdown(3);
+      })
+      .catch(err => {
+        hideLoading();
+        showError('Gagal mengambil profil Google: ' + err.message);
+      });
+    }
+
+    // ── Decode JWT payload (base64url) ───────────────────────
+    function decodeJWT(token) {
+      try {
+        const base64Url = token.split('.')[1];
+        const base64    = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const json      = decodeURIComponent(
+          atob(base64).split('').map(c =>
+            '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+          ).join('')
+        );
+        return JSON.parse(json);
+      } catch { return null; }
+    }
+
+    // ── Tampilkan info user setelah login ────────────────────
+    function showUserState(user) {
+      document.getElementById('loginState').style.display = 'none';
+
+      const us = document.getElementById('userState');
+      us.classList.add('visible');
+
+      document.getElementById('userName').textContent  = user.name;
+      document.getElementById('userEmail').textContent = user.email;
+
+      const avatar = document.getElementById('userAvatar');
+      if (user.picture) {
+        avatar.src = user.picture;
+      } else {
+        // Fallback avatar dengan inisial
+        avatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=f5c518&color=0c0e13&size=60`;
+      }
+    }
+
+    // ── Countdown & redirect ─────────────────────────────────
+    function startCountdown(seconds) {
+      const el = document.getElementById('countdownNum');
+      let count = seconds;
+      const timer = setInterval(() => {
+        count--;
+        el.textContent = count;
+        if (count <= 0) {
+          clearInterval(timer);
+          goToApp();
+        }
+      }, 1000);
+    }
+
+    function goToApp() {
+      window.location.href = APP_URL;
+    }
+
+    // ── UI Helpers ───────────────────────────────────────────
+    function showLoading() {
+      document.getElementById('loadingOverlay').classList.add('active');
+    }
+    function hideLoading() {
+      document.getElementById('loadingOverlay').classList.remove('active');
+    }
+    function showError(msg) {
+      const box = document.getElementById('errorBox');
+      document.getElementById('errorMsg').textContent = msg;
+      box.classList.add('visible');
+    }
+    function hideError() {
+      document.getElementById('errorBox').classList.remove('visible');
+    }
+
+    // ── Floating nodes (decorative) ──────────────────────────
+    function spawnNodes() {
+      const container = document.getElementById('bgNodes');
+      const positions = [
+        [10,20],[20,70],[35,40],[50,15],[65,60],[75,30],[85,80],[90,50],
+        [15,90],[45,85],[60,10],[80,65]
+      ];
+      positions.forEach(([x, y], i) => {
+        const node = document.createElement('div');
+        node.className = 'node';
+        node.style.cssText = `
+          left: ${x}%; top: ${y}%;
+          --dur: ${6 + Math.random() * 6}s;
+          --delay: ${i * 0.6}s;
+        `;
+        container.appendChild(node);
+      });
+    }
+  </script>
+
+</body>
+</html>
