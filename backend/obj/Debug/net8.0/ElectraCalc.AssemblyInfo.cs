@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ElectraCalc")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c90e0567d98b0f5043d1960b86ddd22afe92da05")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1a8fb5c7f6d27d78df051c22b0902a48838216b2")]
 [assembly: System.Reflection.AssemblyProductAttribute("ElectraCalc")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ElectraCalc")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

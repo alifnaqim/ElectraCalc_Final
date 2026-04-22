@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\ElectraCalc\\backend\\ElectraCalc.csproj": {}
+    "D:\\ElectraCalc\\backend\\ElectraCalc.csproj": {}
   },
   "projects": {
-    "C:\\ElectraCalc\\backend\\ElectraCalc.csproj": {
+    "D:\\ElectraCalc\\backend\\ElectraCalc.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\ElectraCalc\\backend\\ElectraCalc.csproj",
+        "projectUniqueName": "D:\\ElectraCalc\\backend\\ElectraCalc.csproj",
         "projectName": "ElectraCalc",
-        "projectPath": "C:\\ElectraCalc\\backend\\ElectraCalc.csproj",
+        "projectPath": "D:\\ElectraCalc\\backend\\ElectraCalc.csproj",
         "packagesPath": "C:\\Users\\MHD.ALIF NAQIM\\.nuget\\packages\\",
-        "outputPath": "C:\\ElectraCalc\\backend\\obj\\",
+        "outputPath": "D:\\ElectraCalc\\backend\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\MHD.ALIF NAQIM\\AppData\\Roaming\\NuGet\\NuGet.Config"
